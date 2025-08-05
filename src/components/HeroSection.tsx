@@ -31,13 +31,13 @@ export const HeroSection = () => {
           </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
-            Unified Digital License &
-            <span className="block text-accent"> Registration Portal</span>
+            Blockchain-Based Digital
+            <span className="block text-accent">License & Registration System</span>
           </h1>
           
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto animate-slide-up">
-            Seamless, paperless, and presence-less government services. 
-            Apply for licenses, permits, and registrations from anywhere, anytime.
+            Revolutionary government services powered by blockchain technology. 
+            Secure, transparent, and tamper-proof certificates with smart contract automation.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">

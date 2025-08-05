@@ -38,13 +38,13 @@ export const Footer = () => {
             <div className="flex items-center space-x-3">
               <img src={governmentLogo} alt="Government Logo" className="h-12 w-12" />
               <div>
-                <h3 className="font-bold text-lg">UDLRP</h3>
+                <h3 className="font-bold text-lg">Blockchain Gov System</h3>
                 <p className="text-sm text-primary-foreground/80">Digital India Initiative</p>
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed">
-              Unified Digital License & Registration Portal - Transforming government services 
-              through technology for a better citizen experience.
+              Blockchain-Based Digital Government License & Registration System - Revolutionary 
+              government services with cryptographic security and smart contract automation.
             </p>
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm">

@@ -44,7 +44,7 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
           <img src={governmentLogo} alt="Government Logo" className="h-10 w-10" />
           <div className="flex flex-col">
             <span className="text-sm font-bold text-primary">Government of India</span>
-            <span className="text-xs text-muted-foreground">Digital Services Portal</span>
+            <span className="text-xs text-muted-foreground">Blockchain License System</span>
           </div>
         </Link>
 

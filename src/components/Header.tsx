@@ -120,5 +120,3 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
     </header>
   );
 };
-
-export default Header;

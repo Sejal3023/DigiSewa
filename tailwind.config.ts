@@ -115,13 +115,15 @@ export default {
 				'pulse-soft': 'pulseSoft 2s infinite'
 			},
 			backgroundImage: {
-				'gradient-government': 'var(--gradient-hero)',
-				'gradient-card': 'var(--gradient-card)'
+				'gradient-corporate': 'var(--gradient-hero)',
+				'gradient-card': 'var(--gradient-card)',
+				'gradient-subtle': 'var(--gradient-subtle)'
 			},
 			boxShadow: {
-				'government': 'var(--shadow-government)',
+				'corporate': 'var(--shadow-corporate)',
 				'card-soft': 'var(--shadow-card)',
-				'elevated': 'var(--shadow-elevated)'
+				'elevated': 'var(--shadow-elevated)',
+				'subtle': 'var(--shadow-subtle)'
 			}
 		}
 	},

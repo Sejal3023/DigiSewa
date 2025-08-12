@@ -20,6 +20,7 @@ import {
   Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import WalletConnect from "@/components/WalletConnect";
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("applications");
@@ -141,6 +142,11 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Wallet Connection */}
+          <div className="mb-8">
+            <WalletConnect />
           </div>
 
           {/* Main Content */}

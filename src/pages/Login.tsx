@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, User, Mail, Lock, ArrowRight } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
   const [userForm, setUserForm] = useState({
@@ -21,16 +23,78 @@ const Login = () => {
     adminCode: ""
   });
 
-  const handleUserLogin = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle user login logic here
-    console.log("User login:", userForm);
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: userForm.email,
+        password: userForm.password,
+      });
+
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Successful",
+          description: "Welcome back!",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle admin login logic here
-    console.log("Admin login:", adminForm);
+    setIsLoading(true);
+    
+    try {
+      // For now, we'll use the same authentication but could add admin role checking later
+      const { error } = await supabase.auth.signInWithPassword({
+        email: adminForm.email,
+        password: adminForm.password,
+      });
+
+      if (error) {
+        toast({
+          title: "Admin Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // TODO: Add admin code verification logic here if needed
+        toast({
+          title: "Admin Login Successful",
+          description: "Access granted to admin portal",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Admin Login Failed",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -139,8 +203,8 @@ const Login = () => {
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-full">
-                        Login to Services
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Signing in..." : "Login to Services"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </form>
@@ -254,8 +318,8 @@ const Login = () => {
                         </div>
                       </div>
 
-                      <Button type="submit" className="w-full bg-accent hover:bg-accent/90">
-                        Access Admin Portal
+                      <Button type="submit" className="w-full bg-accent hover:bg-accent/90" disabled={isLoading}>
+                        {isLoading ? "Verifying..." : "Access Admin Portal"}
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </form>

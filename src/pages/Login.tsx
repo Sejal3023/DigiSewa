@@ -149,7 +149,7 @@ const Login = () => {
                       <p className="text-sm text-muted-foreground mb-3">
                         Don't have an account?
                       </p>
-                      <Button className="w-full" asChild>
+                      <Button variant="outline" className="w-full" asChild>
                         <Link to="/register">
                           Register here
                           <ArrowRight className="ml-2 h-4 w-4" />

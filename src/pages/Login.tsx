@@ -146,12 +146,15 @@ const Login = () => {
                     </form>
 
                     <div className="mt-6 text-center">
-                      <p className="text-sm text-muted-foreground">
-                        Don't have an account?{" "}
-                        <Link to="/register" className="text-primary hover:underline">
-                          Register here
-                        </Link>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Don't have an account?
                       </p>
+                      <Button variant="outline" className="w-full" asChild>
+                        <Link to="/register">
+                          Register here
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

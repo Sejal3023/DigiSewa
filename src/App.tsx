@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import TrackApplication from "./pages/TrackApplication";
 import ApplicationForm from "./pages/ApplicationForm";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/services" element={<Services />} />
           <Route path="/services/:serviceId" element={<Services />} />
           <Route path="/apply/:serviceId" element={<ApplicationForm />} />

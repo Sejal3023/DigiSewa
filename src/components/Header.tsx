@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, User, Bell, LogOut } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
+import { Menu, User, Bell, LogOut, Settings } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import governmentLogo from "@/assets/government-logo.png";
 
 interface HeaderProps {
@@ -11,6 +13,8 @@ interface HeaderProps {
 
 export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: HeaderProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut, user } = useAuth();
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -67,19 +71,45 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
 
         {/* Right side */}
         <div className="ml-auto flex items-center space-x-4">
-          {isAuthenticated ? (
+          {isAuthenticated || user ? (
             <>
               <Button variant="ghost" size="sm">
                 <Bell className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm">
-                <User className="h-4 w-4" />
-                Profile
-              </Button>
-              <Button variant="outline" size="sm">
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <User className="h-4 w-4 mr-2" />
+                    Profile
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="cursor-pointer">
+                      <User className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/dashboard" className="cursor-pointer">
+                      <Settings className="h-4 w-4 mr-2" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/');
+                    }}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </>
           ) : (
             <>

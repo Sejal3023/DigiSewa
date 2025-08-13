@@ -1,10 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Menu, User, Bell, LogOut, Settings, UserCircle } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Menu, User, Bell, LogOut } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import governmentLogo from "@/assets/government-logo.png";
 
 interface HeaderProps {
@@ -14,33 +11,6 @@ interface HeaderProps {
 
 export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: HeaderProps) => {
   const location = useLocation();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleLogout = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast({
-          title: "Logout Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Logged Out",
-          description: "You have been successfully logged out",
-        });
-        navigate("/");
-      }
-    } catch (error) {
-      toast({
-        title: "Logout Failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -99,37 +69,17 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
         <div className="ml-auto flex items-center space-x-4">
           {isAuthenticated ? (
             <>
-              <Button variant="ghost" size="sm" className="relative hover:bg-muted">
+              <Button variant="ghost" size="sm">
                 <Bell className="h-4 w-4" />
-                <span className="absolute -top-1 -right-1 bg-accent text-accent-foreground text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
               </Button>
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="hover:bg-muted">
-                    <UserCircle className="h-4 w-4 mr-2" />
-                    Profile
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem className="hover:bg-muted">
-                    <User className="h-4 w-4 mr-2" />
-                    View Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="hover:bg-muted">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Account Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleLogout}
-                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button variant="ghost" size="sm">
+                <User className="h-4 w-4" />
+                Profile
+              </Button>
+              <Button variant="outline" size="sm">
+                <LogOut className="h-4 w-4" />
+                Logout
+              </Button>
             </>
           ) : (
             <>

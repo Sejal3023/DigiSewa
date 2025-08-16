@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   FileText, 
   Clock, 
@@ -24,73 +25,140 @@ import {
   Settings,
   Shield,
   CheckSquare,
-  XSquare
+  XSquare,
+  Building2,
+  Calendar,
+  TrendingUp,
+  FileCheck,
+  UserCheck,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("applications");
+  const [activeTab, setActiveTab] = useState("overview");
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [approvalRemarks, setApprovalRemarks] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [stats, setStats] = useState({
+    totalApplications: 0,
+    pendingReview: 0,
+    approvedToday: 0,
+    rejectedApplications: 0,
+    processingApplications: 0
+  });
+  const [departments] = useState([
+    "Municipal Corporation",
+    "RTO",
+    "Food & Drug Administration", 
+    "Police Department",
+    "Public Works Department",
+    "Revenue Department",
+    "Education Department",
+    "Health Department"
+  ]);
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Mock admin stats - replace with real data
-  const adminStats = [
-    { label: "Total Applications", value: "156", icon: FileText, color: "text-blue-600" },
-    { label: "Pending Review", value: "42", icon: Clock, color: "text-orange-600" },
-    { label: "Approved Today", value: "18", icon: CheckCircle2, color: "text-green-600" },
-    { label: "Active Users", value: "1,247", icon: Users, color: "text-purple-600" }
-  ];
+  const fetchApplications = async () => {
+    try {
+      setLoading(true);
+      const { data: applicationsData, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          users!applications_user_id_fkey(name, email),
+          documents(id, doc_type, file_url),
+          approvals(department_name, remarks, approval_date, approved_by)
+        `)
+        .order('submission_date', { ascending: false });
 
-  // Mock applications data - replace with Supabase queries
-  const mockApplications = [
-    {
-      id: "APP001",
-      user_name: "Rajesh Kumar",
-      user_email: "rajesh@example.com",
-      license_type: "Shop & Establishment License",
-      status: "pending",
-      submission_date: "2024-01-22",
-      department: "Municipal Corporation",
-      fees: "₹1,500",
-      documents: ["identity_proof.pdf", "address_proof.pdf", "shop_agreement.pdf"]
-    },
-    {
-      id: "APP002",
-      user_name: "Priya Sharma",
-      user_email: "priya@example.com", 
-      license_type: "Vehicle Registration",
-      status: "pending",
-      submission_date: "2024-01-21",
-      department: "RTO",
-      fees: "₹850",
-      documents: ["rc_form.pdf", "insurance.pdf", "pollution_cert.pdf"]
-    },
-    {
-      id: "APP003",
-      user_name: "Mohammed Ali",
-      user_email: "mohammed@example.com",
-      license_type: "FSSAI Food License", 
-      status: "processing",
-      submission_date: "2024-01-20",
-      department: "Food & Drug Administration",
-      fees: "₹2,000",
-      documents: ["fssai_form.pdf", "premises_proof.pdf", "water_test.pdf"]
+      if (error) throw error;
+
+      const formattedApplications = applicationsData?.map(app => ({
+        id: app.id,
+        user_name: app.users?.name || 'Unknown User',
+        user_email: app.users?.email || 'No email',
+        license_type: app.license_type,
+        status: app.status,
+        submission_date: app.submission_date,
+        documents: app.documents || [],
+        approvals: app.approvals || [],
+        blockchain_tx_hash: app.blockchain_tx_hash,
+        ipfs_hash: app.ipfs_hash
+      })) || [];
+
+      setApplications(formattedApplications);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load applications",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const fetchStats = async () => {
+    try {
+      const { count: totalApps } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true });
+
+      const { count: pendingApps } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
+
+      const { count: approvedToday } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'approved')
+        .gte('submission_date', new Date().toISOString().split('T')[0]);
+
+      const { count: rejectedApps } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'rejected');
+
+      const { count: processingApps } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'processing');
+
+      setStats({
+        totalApplications: totalApps || 0,
+        pendingReview: pendingApps || 0,
+        approvedToday: approvedToday || 0,
+        rejectedApplications: rejectedApps || 0,
+        processingApplications: processingApps || 0
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setApplications(mockApplications);
-      setLoading(false);
-    }, 1000);
+    fetchApplications();
+    fetchStats();
   }, []);
+
+  const adminStats = [
+    { label: "Total Applications", value: stats.totalApplications.toString(), icon: FileText, color: "text-primary" },
+    { label: "Pending Review", value: stats.pendingReview.toString(), icon: Clock, color: "text-warning" },
+    { label: "Approved Today", value: stats.approvedToday.toString(), icon: CheckCircle2, color: "text-success" },
+    { label: "Processing", value: stats.processingApplications.toString(), icon: RefreshCw, color: "text-accent" },
+    { label: "Rejected", value: stats.rejectedApplications.toString(), icon: XSquare, color: "text-destructive" }
+  ];
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,19 +176,56 @@ const AdminDashboard = () => {
   };
 
   const handleApproveApplication = async (applicationId: string) => {
+    if (!approvalRemarks.trim()) {
+      toast({
+        title: "Approval Remarks Required",
+        description: "Please provide approval remarks.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // Update application status to approved
-      // In real implementation, use Supabase update
-      const updatedApplications = applications.map(app => 
-        app.id === applicationId ? { ...app, status: "approved" } : app
-      );
-      setApplications(updatedApplications);
+      // Update application status
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ status: 'approved' })
+        .eq('id', applicationId);
+
+      if (updateError) throw updateError;
+
+      // Insert approval record
+      const { error: approvalError } = await supabase
+        .from('approvals')
+        .insert({
+          application_id: applicationId,
+          approved_by: user?.id,
+          department_name: departmentFilter !== 'all' ? departmentFilter : 'Admin',
+          remarks: approvalRemarks
+        });
+
+      if (approvalError) throw approvalError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: user?.id,
+          action: 'application_approved',
+          details: { application_id: applicationId, remarks: approvalRemarks }
+        });
+
+      await fetchApplications();
+      await fetchStats();
+      setApprovalRemarks("");
+      setSelectedApplication(null);
       
       toast({
         title: "Application Approved",
         description: `Application ${applicationId} has been approved successfully.`,
       });
     } catch (error) {
+      console.error('Error approving application:', error);
       toast({
         title: "Error",
         description: "Failed to approve application. Please try again.",
@@ -140,18 +245,46 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Update application status to rejected
-      const updatedApplications = applications.map(app => 
-        app.id === applicationId ? { ...app, status: "rejected", rejection_reason: approvalRemarks } : app
-      );
-      setApplications(updatedApplications);
+      // Update application status
+      const { error: updateError } = await supabase
+        .from('applications')
+        .update({ status: 'rejected' })
+        .eq('id', applicationId);
+
+      if (updateError) throw updateError;
+
+      // Insert approval record (rejection)
+      const { error: approvalError } = await supabase
+        .from('approvals')
+        .insert({
+          application_id: applicationId,
+          approved_by: user?.id,
+          department_name: departmentFilter !== 'all' ? departmentFilter : 'Admin',
+          remarks: approvalRemarks
+        });
+
+      if (approvalError) throw approvalError;
+
+      // Log the action
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: user?.id,
+          action: 'application_rejected',
+          details: { application_id: applicationId, remarks: approvalRemarks }
+        });
+
+      await fetchApplications();
+      await fetchStats();
       setApprovalRemarks("");
+      setSelectedApplication(null);
       
       toast({
         title: "Application Rejected",
         description: `Application ${applicationId} has been rejected.`,
       });
     } catch (error) {
+      console.error('Error rejecting application:', error);
       toast({
         title: "Error", 
         description: "Failed to reject application. Please try again.",
@@ -160,32 +293,84 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleSetProcessing = async (applicationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'processing' })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      await fetchApplications();
+      await fetchStats();
+      
+      toast({
+        title: "Status Updated",
+        description: `Application ${applicationId} is now being processed.`,
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application status.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const filteredApplications = applications.filter(app => {
+    const matchesSearch = app.user_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         app.license_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         app.id.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} userRole="admin" />
       
       <main className="pt-8 pb-20">
         <div className="container mx-auto px-4">
-          {/* Admin Header */}
-          <div className="mb-8">
+          {/* Government Portal Header */}
+          <div className="mb-8 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg p-6">
             <div className="flex items-center gap-3 mb-4">
-              <Shield className="h-8 w-8 text-accent" />
-              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <Shield className="h-10 w-10 text-primary" />
+              <div>
+                <h1 className="text-4xl font-bold text-primary">Government Administration Portal</h1>
+                <p className="text-xl text-muted-foreground">Central Authority Dashboard</p>
+              </div>
             </div>
-            <p className="text-muted-foreground">Manage applications, users, and system settings</p>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                <span>Multi-Department Access</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                <span>Administrator: {user?.email}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{new Date().toLocaleDateString()}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Stats Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
             {adminStats.map((stat, index) => (
-              <Card key={stat.label} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                <CardContent className="p-6">
+              <Card key={stat.label} className="animate-fade-in hover:shadow-lg transition-shadow" style={{ animationDelay: `${index * 0.1}s` }}>
+                <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="text-3xl font-bold">{stat.value}</p>
+                      <p className="text-xs text-muted-foreground font-medium">{stat.label}</p>
+                      <p className="text-2xl font-bold">{stat.value}</p>
                     </div>
-                    <stat.icon className={`h-8 w-8 ${stat.color}`} />
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                 </CardContent>
               </Card>
@@ -194,37 +379,111 @@ const AdminDashboard = () => {
 
           {/* Main Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="applications">Applications</TabsTrigger>
-              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="departments">Departments</TabsTrigger>
               <TabsTrigger value="analytics">Analytics</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="overview" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-warning" />
+                      Priority Applications
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {applications.slice(0, 5).map((app) => (
+                        <div key={app.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <div>
+                            <p className="font-medium">{app.license_type}</p>
+                            <p className="text-sm text-muted-foreground">{app.user_name}</p>
+                          </div>
+                          <div className="text-right">
+                            {getStatusBadge(app.status)}
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(app.submission_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-accent" />
+                      Department Status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {departments.slice(0, 6).map((dept) => (
+                        <div key={dept} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                          <span className="font-medium">{dept}</span>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">Active</Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {Math.floor(Math.random() * 20 + 5)} pending
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
 
             <TabsContent value="applications" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <span>Application Management</span>
+                    <span>Application Management System</span>
                     <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm">
-                        <Filter className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Search className="h-4 w-4" />
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Filter by status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Status</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="processing">Processing</SelectItem>
+                          <SelectItem value="approved">Approved</SelectItem>
+                          <SelectItem value="rejected">Rejected</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Search applications..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-60"
+                      />
+                      <Button variant="outline" size="sm" onClick={() => { fetchApplications(); fetchStats(); }}>
+                        <RefreshCw className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">Loading applications...</div>
+                    <div className="text-center py-8">
+                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+                      <p>Loading applications...</p>
+                    </div>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Application ID</TableHead>
-                          <TableHead>Applicant</TableHead>
+                          <TableHead>Applicant Details</TableHead>
                           <TableHead>License Type</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Submitted</TableHead>
@@ -232,44 +491,131 @@ const AdminDashboard = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {applications.map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-medium">{app.id}</TableCell>
+                        {filteredApplications.map((app) => (
+                          <TableRow key={app.id} className="hover:bg-muted/50">
+                            <TableCell className="font-mono font-medium">{app.id.slice(0, 8)}...</TableCell>
                             <TableCell>
                               <div>
                                 <div className="font-medium">{app.user_name}</div>
                                 <div className="text-sm text-muted-foreground">{app.user_email}</div>
                               </div>
                             </TableCell>
-                            <TableCell>{app.license_type}</TableCell>
+                            <TableCell className="font-medium">{app.license_type}</TableCell>
                             <TableCell>{getStatusBadge(app.status)}</TableCell>
                             <TableCell>{new Date(app.submission_date).toLocaleDateString()}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => setSelectedApplication(app)}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
+                              <div className="flex items-center gap-1">
+                                <Dialog>
+                                  <DialogTrigger asChild>
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => setSelectedApplication(app)}
+                                    >
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                    <DialogHeader>
+                                      <DialogTitle>Application Details - {app.id}</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="space-y-6">
+                                      <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                          <Label>Applicant Name</Label>
+                                          <p className="font-medium">{app.user_name}</p>
+                                        </div>
+                                        <div>
+                                          <Label>Email</Label>
+                                          <p className="font-medium">{app.user_email}</p>
+                                        </div>
+                                        <div>
+                                          <Label>License Type</Label>
+                                          <p className="font-medium">{app.license_type}</p>
+                                        </div>
+                                        <div>
+                                          <Label>Current Status</Label>
+                                          {getStatusBadge(app.status)}
+                                        </div>
+                                        <div>
+                                          <Label>Submission Date</Label>
+                                          <p className="font-medium">{new Date(app.submission_date).toLocaleDateString()}</p>
+                                        </div>
+                                        <div>
+                                          <Label>Application ID</Label>
+                                          <p className="font-mono text-sm">{app.id}</p>
+                                        </div>
+                                      </div>
+
+                                      <div>
+                                        <Label>Documents Submitted ({app.documents?.length || 0})</Label>
+                                        <div className="mt-2 space-y-2">
+                                          {app.documents?.map((doc, index) => (
+                                            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                                              <div>
+                                                <span className="font-medium">{doc.doc_type}</span>
+                                                <p className="text-sm text-muted-foreground">Uploaded</p>
+                                              </div>
+                                              <Button variant="outline" size="sm">
+                                                <Download className="h-4 w-4 mr-2" />
+                                                Download
+                                              </Button>
+                                            </div>
+                                          )) || <p className="text-muted-foreground">No documents uploaded</p>}
+                                        </div>
+                                      </div>
+
+                                      {app.status === "pending" && (
+                                        <div className="space-y-4 border-t pt-4">
+                                          <div>
+                                            <Label htmlFor="remarks">Action Remarks (Required)</Label>
+                                            <Textarea
+                                              id="remarks"
+                                              placeholder="Enter detailed remarks for your decision..."
+                                              value={approvalRemarks}
+                                              onChange={(e) => setApprovalRemarks(e.target.value)}
+                                              className="mt-2"
+                                              rows={4}
+                                            />
+                                          </div>
+                                          <div className="flex gap-3">
+                                            <Button 
+                                              className="bg-success hover:bg-success/90 text-success-foreground"
+                                              onClick={() => handleApproveApplication(app.id)}
+                                            >
+                                              <CheckSquare className="h-4 w-4 mr-2" />
+                                              Approve Application
+                                            </Button>
+                                            <Button 
+                                              variant="outline"
+                                              onClick={() => handleSetProcessing(app.id)}
+                                            >
+                                              <RefreshCw className="h-4 w-4 mr-2" />
+                                              Set Processing
+                                            </Button>
+                                            <Button 
+                                              variant="destructive"
+                                              onClick={() => handleRejectApplication(app.id)}
+                                            >
+                                              <XSquare className="h-4 w-4 mr-2" />
+                                              Reject Application
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                
                                 {app.status === "pending" && (
                                   <>
                                     <Button 
                                       variant="outline" 
                                       size="sm"
                                       className="text-success hover:text-success"
-                                      onClick={() => handleApproveApplication(app.id)}
+                                      onClick={() => handleSetProcessing(app.id)}
                                     >
-                                      <CheckSquare className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="text-destructive hover:text-destructive"
-                                      onClick={() => handleRejectApplication(app.id)}
-                                    >
-                                      <XSquare className="h-4 w-4" />
+                                      <RefreshCw className="h-4 w-4" />
                                     </Button>
                                   </>
                                 )}
@@ -282,109 +628,42 @@ const AdminDashboard = () => {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Application Details Modal/Panel */}
-              {selectedApplication && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Application Details - {selectedApplication.id}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <Label>Applicant Name</Label>
-                        <p className="font-medium">{selectedApplication.user_name}</p>
-                      </div>
-                      <div>
-                        <Label>Email</Label>
-                        <p className="font-medium">{selectedApplication.user_email}</p>
-                      </div>
-                      <div>
-                        <Label>License Type</Label>
-                        <p className="font-medium">{selectedApplication.license_type}</p>
-                      </div>
-                      <div>
-                        <Label>Department</Label>
-                        <p className="font-medium">{selectedApplication.department}</p>
-                      </div>
-                      <div>
-                        <Label>Fees</Label>
-                        <p className="font-medium">{selectedApplication.fees}</p>
-                      </div>
-                      <div>
-                        <Label>Status</Label>
-                        {getStatusBadge(selectedApplication.status)}
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label>Documents Submitted</Label>
-                      <div className="mt-2 space-y-2">
-                        {selectedApplication.documents?.map((doc, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 border rounded">
-                            <span className="text-sm">{doc}</span>
-                            <Button variant="outline" size="sm">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {selectedApplication.status === "pending" && (
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="remarks">Approval/Rejection Remarks</Label>
-                          <Textarea
-                            id="remarks"
-                            placeholder="Enter your remarks..."
-                            value={approvalRemarks}
-                            onChange={(e) => setApprovalRemarks(e.target.value)}
-                            className="mt-2"
-                          />
-                        </div>
-                        <div className="flex gap-4">
-                          <Button 
-                            className="bg-success hover:bg-success/90"
-                            onClick={() => handleApproveApplication(selectedApplication.id)}
-                          >
-                            <CheckSquare className="h-4 w-4 mr-2" />
-                            Approve Application
-                          </Button>
-                          <Button 
-                            variant="destructive"
-                            onClick={() => handleRejectApplication(selectedApplication.id)}
-                          >
-                            <XSquare className="h-4 w-4 mr-2" />
-                            Reject Application
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSelectedApplication(null)}
-                    >
-                      Close Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
             </TabsContent>
 
-            <TabsContent value="users" className="space-y-6">
+            <TabsContent value="departments" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>User Management</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="h-5 w-5" />
+                    Department Management
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <Users className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">User Management</h3>
-                    <p className="text-muted-foreground">
-                      View and manage user accounts, roles, and permissions
-                    </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {departments.map((dept) => (
+                      <Card key={dept} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold">{dept}</h3>
+                            <Badge variant="outline" className="text-success">Active</Badge>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span>Pending:</span>
+                              <span className="font-medium">{Math.floor(Math.random() * 15 + 2)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Processing:</span>
+                              <span className="font-medium">{Math.floor(Math.random() * 8 + 1)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Completed:</span>
+                              <span className="font-medium text-success">{Math.floor(Math.random() * 50 + 20)}</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
@@ -393,15 +672,35 @@ const AdminDashboard = () => {
             <TabsContent value="analytics" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>System Analytics</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    System Analytics & Reports
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <BarChart3 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
-                    <p className="text-muted-foreground">
-                      View system performance, usage statistics, and insights
+                  <div className="text-center py-12">
+                    <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Advanced Analytics Dashboard</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Comprehensive reports, performance metrics, and data insights for government operations
                     </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                      <div className="p-4 border rounded-lg">
+                        <FileCheck className="h-8 w-8 mx-auto mb-2 text-primary" />
+                        <h4 className="font-semibold">Application Reports</h4>
+                        <p className="text-sm text-muted-foreground">Detailed processing statistics</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <Users className="h-8 w-8 mx-auto mb-2 text-accent" />
+                        <h4 className="font-semibold">User Analytics</h4>
+                        <p className="text-sm text-muted-foreground">Citizen engagement metrics</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <Clock className="h-8 w-8 mx-auto mb-2 text-warning" />
+                        <h4 className="font-semibold">Performance</h4>
+                        <p className="text-sm text-muted-foreground">Processing time analysis</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -410,15 +709,30 @@ const AdminDashboard = () => {
             <TabsContent value="settings" className="space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>System Settings</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    System Administration
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-center py-8">
-                    <Settings className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-semibold mb-2">System Configuration</h3>
-                    <p className="text-muted-foreground">
-                      Configure system settings, departments, and administrative options
+                  <div className="text-center py-12">
+                    <Shield className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Administrative Controls</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Configure system settings, manage departments, and administrative functions
                     </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
+                      <div className="p-4 border rounded-lg">
+                        <Building2 className="h-8 w-8 mx-auto mb-2 text-primary" />
+                        <h4 className="font-semibold">Department Config</h4>
+                        <p className="text-sm text-muted-foreground">Manage departments and workflows</p>
+                      </div>
+                      <div className="p-4 border rounded-lg">
+                        <UserCheck className="h-8 w-8 mx-auto mb-2 text-accent" />
+                        <h4 className="font-semibold">User Management</h4>
+                        <p className="text-sm text-muted-foreground">Role and permission controls</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

@@ -84,7 +84,7 @@ const Login = () => {
           title: "Admin Login Successful",
           description: "Access granted to admin portal",
         });
-        navigate("/dashboard");
+        navigate("/admin");
       }
     } catch (error) {
       toast({

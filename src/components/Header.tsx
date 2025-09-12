@@ -4,6 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Menu, User, Bell, LogOut, Settings } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import governmentLogo from "@/assets/government-logo.png";
 
 interface HeaderProps {
@@ -15,25 +16,26 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { t } = useLanguage();
 
   const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/services", label: "Services" },
-    { href: "/applications", label: "My Applications" },
-    { href: "/track", label: "Track Application" },
-    { href: "/help", label: "Help & Support" },
+    { href: "/", label: t('nav.home') },
+    { href: "/services", label: t('nav.services') },
+    { href: "/applications", label: t('nav.applications') },
+    { href: "/track", label: t('nav.track') },
+    { href: "/help", label: t('nav.help') },
   ];
 
   const adminNavItems = [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/departments", label: "Departments" },
-    { href: "/admin/officers", label: "Officers" },
-    { href: "/admin/analytics", label: "Analytics" },
+    { href: "/admin", label: t('nav.dashboard') },
+    { href: "/admin/departments", label: t('nav.departments') },
+    { href: "/admin/officers", label: t('nav.officers') },
+    { href: "/admin/analytics", label: t('nav.analytics') },
   ];
 
   const officerNavItems = [
-    { href: "/officer", label: "Dashboard" },
-    { href: "/officer/applications", label: "Applications" },
+    { href: "/officer", label: t('nav.dashboard') },
+    { href: "/officer/applications", label: t('nav.applications') },
     { href: "/officer/approvals", label: "Approvals" },
   ];
 
@@ -81,20 +83,20 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">
                     <User className="h-4 w-4 mr-2" />
-                    Profile
+                    {t('auth.profile')}
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
                     <Link to="/profile" className="cursor-pointer">
                       <User className="h-4 w-4 mr-2" />
-                      View Profile
+                      {t('auth.profile')}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link to="/dashboard" className="cursor-pointer">
                       <Settings className="h-4 w-4 mr-2" />
-                      Dashboard
+                      {t('nav.dashboard')}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -106,7 +108,7 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
                     className="cursor-pointer text-destructive focus:text-destructive"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    Logout
+                    {t('auth.logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -114,10 +116,10 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
           ) : (
             <>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/login">Login</Link>
+                <Link to="/login">{t('auth.login')}</Link>
               </Button>
               <Button variant="government" size="sm" asChild>
-                <Link to="/register">Register</Link>
+                <Link to="/register">{t('auth.register')}</Link>
               </Button>
             </>
           )}

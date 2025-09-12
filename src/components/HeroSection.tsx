@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Shield, Clock, Users, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 import heroBackground from "@/assets/hero-background.jpg";
 
 export const HeroSection = () => {
+  const { t } = useLanguage();
   const stats = [
     { label: "Applications Processed", value: "2.3M+", icon: CheckCircle },
     { label: "Government Departments", value: "50+", icon: Users },
@@ -31,24 +33,22 @@ export const HeroSection = () => {
           </Badge>
           
           <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-fade-in">
-            Blockchain-Based Digital
-            <span className="block text-accent">License & Registration System</span>
+            {t('hero.title')}
           </h1>
           
           <p className="text-xl md:text-2xl mb-8 text-white/90 max-w-3xl mx-auto animate-slide-up">
-            Revolutionary government services powered by blockchain technology. 
-            Secure, transparent, and tamper-proof certificates with smart contract automation.
+            {t('hero.subtitle')}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Button size="lg" variant="secondary" className="text-lg px-8" asChild>
               <Link to="/services">
-                Explore Services
+                {t('hero.cta.apply')}
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 border-white/30 text-white hover:bg-white hover:text-primary" asChild>
-              <Link to="/track">Track Application</Link>
+              <Link to="/track">{t('hero.cta.track')}</Link>
             </Button>
           </div>
 

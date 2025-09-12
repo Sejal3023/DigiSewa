@@ -130,4 +130,88 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Accessibility Font Sizes */
+  .font-normal {
+    font-size: 1rem;
+  }
+
+  .font-large {
+    font-size: 1.125rem;
+  }
+
+  .font-large * {
+    font-size: inherit !important;
+  }
+
+  .font-extra-large {
+    font-size: 1.25rem;
+  }
+
+  .font-extra-large * {
+    font-size: inherit !important;
+  }
+
+  /* High Contrast Mode */
+  .high-contrast {
+    filter: contrast(150%) brightness(110%);
+  }
+
+  .high-contrast * {
+    background-color: var(--background) !important;
+    color: var(--foreground) !important;
+    border-color: var(--border) !important;
+  }
+
+  .high-contrast .text-primary {
+    color: var(--primary) !important;
+  }
+
+  .high-contrast .bg-primary {
+    background-color: var(--primary) !important;
+  }
+
+  /* Screen Reader Only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .focus\:not-sr-only:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: initial;
+    margin: initial;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* RTL Support */
+  [dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+
+  [dir="rtl"] .flex {
+    flex-direction: row-reverse;
+  }
+
+  [dir="rtl"] .ml-2 {
+    margin-left: 0;
+    margin-right: 0.5rem;
+  }
+
+  [dir="rtl"] .mr-2 {
+    margin-right: 0;
+    margin-left: 0.5rem;
+  }
 }

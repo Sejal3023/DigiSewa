@@ -20,6 +20,7 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
 
   const navItems = [
     { href: "/", label: t('nav.home') },
+    { href: "/sewa-kendra", label: t('nav.sewaKendra') },
     { href: "/help", label: t('nav.help') },
   ];
 

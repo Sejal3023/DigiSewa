@@ -101,9 +101,9 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link to="/dashboard" className="cursor-pointer">
+                    <Link to="/settings" className="cursor-pointer">
                       <Settings className="h-4 w-4 mr-2" />
-                      {t('nav.dashboard')}
+                      Settings
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

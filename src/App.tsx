@@ -16,6 +16,7 @@ import ApplicationForm from "./pages/ApplicationForm";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import SewaKendra from "./pages/SewaKendra";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/profile" element={<Profile />} />
             <Route path="/track" element={<TrackApplication />} />
             <Route path="/sewa-kendra" element={<SewaKendra />} />
+            <Route path="/help" element={<Help />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

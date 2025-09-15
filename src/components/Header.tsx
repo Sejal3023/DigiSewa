@@ -18,10 +18,18 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
   const { signOut, user } = useAuth();
   const { t } = useLanguage();
 
-  const navItems = [
+  const guestNavItems = [
     { href: "/", label: t('nav.home') },
     { href: "/sewa-kendra", label: t('nav.sewaKendra') },
     { href: "/help", label: t('nav.help') },
+  ];
+
+  const citizenNavItems = [
+    { href: "/dashboard", label: "My Applications" },
+    { href: "/track", label: "Track Application" },
+    { href: "/services", label: "Services" },
+    { href: "/sewa-kendra", label: t('nav.sewaKendra') },
+    { href: "/help", label: "Help & Support" },
   ];
 
   const adminNavItems = [
@@ -38,7 +46,8 @@ export const Header = ({ isAuthenticated = false, userRole = 'citizen' }: Header
   ];
 
   const currentNavItems = userRole === 'admin' ? adminNavItems : 
-                          userRole === 'officer' ? officerNavItems : navItems;
+                          userRole === 'officer' ? officerNavItems :
+                          (isAuthenticated || user) ? citizenNavItems : guestNavItems;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

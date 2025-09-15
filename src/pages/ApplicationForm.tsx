@@ -28,6 +28,8 @@ import {
   ArrowRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PaymentModal } from "@/components/payment/PaymentModal";
+import { paymentService } from "@/services/paymentService";
 
 const ApplicationForm = () => {
   const { serviceId } = useParams();
@@ -36,6 +38,10 @@ const ApplicationForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<any>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'upi' | null>(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
+  const [transactionId, setTransactionId] = useState('');
 
   const serviceDetails: { [key: string]: any } = {
     "shop-establishment": {
@@ -92,6 +98,7 @@ const ApplicationForm = () => {
 
   const service = serviceDetails[serviceId || ""] || serviceDetails["shop-establishment"];
   const totalSteps = service.steps.length;
+  const totalAmount = paymentService.calculateTotal(service.fees);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev: any) => ({
@@ -101,7 +108,10 @@ const ApplicationForm = () => {
   };
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
+    // Skip payment step if payment is completed
+    if (currentStep === totalSteps - 1 && paymentCompleted) {
+      setCurrentStep(currentStep + 1);
+    } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -112,7 +122,33 @@ const ApplicationForm = () => {
     }
   };
 
+  const handlePaymentMethodSelect = (method: 'card' | 'upi') => {
+    setSelectedPaymentMethod(method);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = (txnId: string) => {
+    setTransactionId(txnId);
+    setPaymentCompleted(true);
+    setShowPaymentModal(false);
+    toast({
+      title: "Payment Successful!",
+      description: `Transaction ID: ${txnId}`,
+    });
+    // Auto advance to next step
+    setCurrentStep(currentStep + 1);
+  };
+
   const handleSubmit = async () => {
+    if (!paymentCompleted) {
+      toast({
+        title: "Payment Required",
+        description: "Please complete the payment to submit your application",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
     // Simulate API submission
@@ -357,27 +393,50 @@ const ApplicationForm = () => {
                   <hr />
                   <div className="flex items-center justify-between font-semibold text-lg">
                     <span>Total Amount:</span>
-                    <span>₹575</span>
+                    <span>₹{totalAmount}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button variant="outline" className="h-16">
-                <CreditCard className="h-6 w-6 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium">Credit/Debit Card</p>
-                  <p className="text-xs text-muted-foreground">Visa, Mastercard, RuPay</p>
-                </div>
-              </Button>
-              <Button variant="outline" className="h-16">
-                <FileText className="h-6 w-6 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium">UPI Payment</p>
-                  <p className="text-xs text-muted-foreground">GPay, PhonePe, Paytm</p>
-                </div>
-              </Button>
-            </div>
+            
+            {paymentCompleted ? (
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="font-semibold text-green-800">Payment Completed Successfully!</p>
+                      <p className="text-sm text-green-600">Transaction ID: {transactionId}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button 
+                  variant="outline" 
+                  className="h-16"
+                  onClick={() => handlePaymentMethodSelect('card')}
+                >
+                  <CreditCard className="h-6 w-6 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium">Credit/Debit Card</p>
+                    <p className="text-xs text-muted-foreground">Visa, Mastercard, RuPay</p>
+                  </div>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-16"
+                  onClick={() => handlePaymentMethodSelect('upi')}
+                >
+                  <FileText className="h-6 w-6 mr-3" />
+                  <div className="text-left">
+                    <p className="font-medium">UPI Payment</p>
+                    <p className="text-xs text-muted-foreground">GPay, PhonePe, Paytm</p>
+                  </div>
+                </Button>
+              </div>
+            )}
           </div>
         );
 
@@ -520,28 +579,36 @@ const ApplicationForm = () => {
               Previous
             </Button>
             
-            {currentStep < totalSteps ? (
-              <Button variant="government" onClick={handleNext}>
-                Next
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            ) : (
-              <Button 
-                variant="government" 
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Submitting..." : "Submit Application"}
-                <CheckCircle2 className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </main>
-      
-      <Footer />
-    </div>
-  );
-};
+             {currentStep < totalSteps ? (
+               <Button variant="government" onClick={handleNext}>
+                 Next
+                 <ArrowRight className="h-4 w-4 ml-2" />
+               </Button>
+             ) : (
+               <Button 
+                 variant="government" 
+                 onClick={handleSubmit}
+                 disabled={isSubmitting || !paymentCompleted}
+               >
+                 {isSubmitting ? "Submitting..." : "Submit Application"}
+                 <CheckCircle2 className="h-4 w-4 ml-2" />
+               </Button>
+             )}
+           </div>
+         </div>
+       </main>
+       
+       <PaymentModal
+         isOpen={showPaymentModal}
+         onClose={() => setShowPaymentModal(false)}
+         paymentMethod={selectedPaymentMethod}
+         amount={totalAmount}
+         onPaymentSuccess={handlePaymentSuccess}
+       />
+       
+       <Footer />
+     </div>
+   );
+ };
 
 export default ApplicationForm;

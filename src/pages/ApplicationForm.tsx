@@ -111,6 +111,19 @@ const ApplicationForm = () => {
   };
 
   const handleNext = () => {
+    // Document validation on document upload step
+    if (currentStep === totalSteps - 2) {
+      const missingDocuments = service.documents.filter((doc: string) => !uploadedDocuments[doc]);
+      if (missingDocuments.length > 0) {
+        toast({
+          title: "Documents Required",
+          description: `Please upload: ${missingDocuments.join(', ')}`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     // Skip payment step if payment is completed
     if (currentStep === totalSteps - 1 && paymentCompleted) {
       setCurrentStep(currentStep + 1);

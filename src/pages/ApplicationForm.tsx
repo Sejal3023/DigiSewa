@@ -30,6 +30,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { PaymentModal } from "@/components/payment/PaymentModal";
 import { paymentService } from "@/services/paymentService";
+import { DocumentUpload } from "@/components/DocumentUpload";
+import { supabase } from "@/integrations/supabase/client";
 
 const ApplicationForm = () => {
   const { serviceId } = useParams();
@@ -42,6 +44,7 @@ const ApplicationForm = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'card' | 'upi' | null>(null);
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [transactionId, setTransactionId] = useState('');
+  const [uploadedDocuments, setUploadedDocuments] = useState<{ [key: string]: any }>({});
 
   const serviceDetails: { [key: string]: any } = {
     "shop-establishment": {
@@ -139,6 +142,13 @@ const ApplicationForm = () => {
     setCurrentStep(currentStep + 1);
   };
 
+  const handleDocumentUploaded = (documentType: string, fileInfo: any) => {
+    setUploadedDocuments(prev => ({
+      ...prev,
+      [documentType]: fileInfo
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!paymentCompleted) {
       toast({
@@ -149,20 +159,60 @@ const ApplicationForm = () => {
       return;
     }
 
+    // Check if all required documents are uploaded
+    const missingDocuments = service.documents.filter((doc: string) => !uploadedDocuments[doc]);
+    if (missingDocuments.length > 0) {
+      toast({
+        title: "Documents Required",
+        description: `Please upload: ${missingDocuments.join(', ')}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate API submission
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    const applicationId = `${serviceId?.toUpperCase().substring(0, 3)}${new Date().getFullYear()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
-    
-    toast({
-      title: "Application Submitted Successfully!",
-      description: `Your application ID is: ${applicationId}`,
-    });
+    try {
+      // Create application in database
+      const { data: application, error: appError } = await supabase
+        .from('applications')
+        .insert({
+          license_type: serviceId,
+          status: 'pending'
+        })
+        .select()
+        .single();
 
-    setIsSubmitting(false);
-    navigate(`/track?id=${applicationId}`);
+      if (appError) throw appError;
+
+      // Update documents with application ID
+      const documentUpdates = Object.values(uploadedDocuments).map(doc => 
+        supabase
+          .from('documents')
+          .update({ application_id: application.id })
+          .eq('id', doc.id)
+      );
+
+      await Promise.all(documentUpdates);
+      
+      const applicationId = `${serviceId?.toUpperCase().substring(0, 3)}${new Date().getFullYear()}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+      
+      toast({
+        title: "Application Submitted Successfully!",
+        description: `Your application ID is: ${applicationId}. Documents secured on blockchain.`,
+      });
+
+      navigate(`/track?id=${applicationId}`);
+    } catch (error) {
+      console.error('Submission error:', error);
+      toast({
+        title: "Submission Failed",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -339,22 +389,12 @@ const ApplicationForm = () => {
             <h3 className="text-lg font-semibold">Document Upload</h3>
             <div className="space-y-4">
               {service.documents.map((doc: string, index: number) => (
-                <Card key={index}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{doc}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Upload clear, readable document (PDF, JPG, PNG - Max 5MB)
-                        </p>
-                      </div>
-                      <Button variant="outline" size="sm">
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <DocumentUpload
+                  key={index}
+                  documentType={doc}
+                  onDocumentUploaded={handleDocumentUploaded}
+                  existingDocument={uploadedDocuments[doc]}
+                />
               ))}
             </div>
             <div className="p-4 bg-muted/30 rounded-lg">
@@ -363,9 +403,24 @@ const ApplicationForm = () => {
                 <div>
                   <p className="font-medium text-sm">Blockchain Security</p>
                   <p className="text-xs text-muted-foreground">
-                    All uploaded documents will be encrypted and stored securely on the blockchain
+                    All uploaded documents are encrypted and their hashes stored securely on the blockchain for tamper-proof verification
                   </p>
                 </div>
+              </div>
+            </div>
+            
+            {/* Document Upload Summary */}
+            <div className="mt-4">
+              <p className="text-sm font-medium mb-2">Upload Progress</p>
+              <div className="grid grid-cols-1 gap-2">
+                {service.documents.map((doc: string, index: number) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <span>{doc}</span>
+                    <span className={uploadedDocuments[doc] ? "text-green-600" : "text-muted-foreground"}>
+                      {uploadedDocuments[doc] ? "✓ Uploaded" : "Pending"}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

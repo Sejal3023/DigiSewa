@@ -156,6 +156,13 @@ export type Database = {
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_documents_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
         ]
       }
       users: {

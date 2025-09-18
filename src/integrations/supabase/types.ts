@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activities: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          department: string | null
+          details: Json | null
+          id: string
+          ip_address: unknown | null
+          target_application_id: string | null
+          target_user_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          department?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_application_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          department?: string | null
+          details?: Json | null
+          id?: string
+          ip_address?: unknown | null
+          target_application_id?: string | null
+          target_user_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           blockchain_tx_hash: string | null
@@ -164,6 +203,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      role_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          created_at: string
+          department: string | null
+          id: string
+          is_active: boolean
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       users: {
         Row: {

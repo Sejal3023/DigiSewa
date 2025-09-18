@@ -32,8 +32,13 @@ import {
   FileCheck,
   UserCheck,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Activity,
+  Crown
 } from "lucide-react";
+import WalletConnect from "@/components/WalletConnect";
+import RoleManagement from "@/components/RoleManagement";
+import ActivityMonitor from "@/components/ActivityMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,6 +71,13 @@ const AdminDashboard = () => {
   ]);
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Check if user has Super Admin privileges
+  const isSuperAdmin = user?.email && (
+    user.email === 'super.admin@gov.in' || 
+    // Add check for super_admin role from database
+    false // This will be updated when user role is loaded from DB
+  );
 
   const fetchApplications = async () => {
     try {
@@ -379,11 +391,13 @@ const AdminDashboard = () => {
 
           {/* Main Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-7">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="applications">Applications</TabsTrigger>
               <TabsTrigger value="departments">Departments</TabsTrigger>
-              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="blockchain">Blockchain</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="roles">Role Management</TabsTrigger>}
+              {isSuperAdmin && <TabsTrigger value="monitor">Activity Monitor</TabsTrigger>}
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
 

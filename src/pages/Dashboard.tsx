@@ -20,7 +20,7 @@ import {
   Bell
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import WalletConnect from "@/components/WalletConnect";
+// Removed WalletConnect - MetaMask integration moved to Admin Dashboard only
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState("applications");
@@ -144,10 +144,7 @@ const Dashboard = () => {
             ))}
           </div>
 
-          {/* Wallet Connection */}
-          <div className="mb-8">
-            <WalletConnect />
-          </div>
+          {/* Removed Wallet Connection - Citizens use simple forms only */}
 
           {/* Main Content */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

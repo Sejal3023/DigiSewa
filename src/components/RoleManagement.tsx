@@ -102,17 +102,42 @@ const RoleManagement = () => {
   const fetchRoleAssignments = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Get role assignments first
+      const { data: assignments, error: assignmentError } = await supabase
         .from('role_assignments')
-        .select(`
-          *,
-          users(id, name, email, role, created_at)
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('assigned_at', { ascending: false });
 
-      if (error) throw error;
-      setRoleAssignments(data || []);
+      if (assignmentError) throw assignmentError;
+
+      // Get user details for the assignments
+      if (assignments && assignments.length > 0) {
+        const userIds = assignments.map(a => a.user_id);
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('id, name, email, role, created_at')
+          .in('id', userIds);
+
+        if (userError) throw userError;
+
+        // Combine assignments with user data
+        const enrichedAssignments = assignments.map(assignment => ({
+          ...assignment,
+          users: userData?.find(u => u.id === assignment.user_id) || {
+            id: assignment.user_id,
+            name: 'Unknown User',
+            email: 'No email',
+            role: 'unknown',
+            created_at: new Date().toISOString()
+          }
+        }));
+
+        setRoleAssignments(enrichedAssignments);
+      } else {
+        setRoleAssignments([]);
+      }
     } catch (error) {
       console.error('Error fetching role assignments:', error);
       toast({
@@ -120,6 +145,7 @@ const RoleManagement = () => {
         description: "Failed to load role assignments",
         variant: "destructive",
       });
+      setRoleAssignments([]);
     } finally {
       setLoading(false);
     }

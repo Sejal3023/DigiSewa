@@ -36,12 +36,12 @@ import {
   Activity,
   Crown
 } from "lucide-react";
-import WalletConnect from "@/components/WalletConnect";
-import RoleManagement from "@/components/RoleManagement";
-import ActivityMonitor from "@/components/ActivityMonitor";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import WalletConnect from "@/components/WalletConnect";
+import RoleManagement from "@/components/RoleManagement";
+import ActivityMonitor from "@/components/ActivityMonitor";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -353,7 +353,9 @@ const AdminDashboard = () => {
               <Shield className="h-10 w-10 text-primary" />
               <div>
                 <h1 className="text-4xl font-bold text-primary">Government Administration Portal</h1>
-                <p className="text-xl text-muted-foreground">Central Authority Dashboard</p>
+                <p className="text-xl text-muted-foreground">
+                  {isSuperAdmin ? "Super Administrator Dashboard" : "Central Authority Dashboard"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -488,151 +490,104 @@ const AdminDashboard = () => {
                 </CardHeader>
                 <CardContent>
                   {loading ? (
-                    <div className="text-center py-8">
-                      <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-                      <p>Loading applications...</p>
-                    </div>
+                    <div className="text-center py-8">Loading applications...</div>
                   ) : (
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Application ID</TableHead>
-                          <TableHead>Applicant Details</TableHead>
+                          <TableHead>Applicant</TableHead>
                           <TableHead>License Type</TableHead>
                           <TableHead>Status</TableHead>
-                          <TableHead>Submitted</TableHead>
+                          <TableHead>Submission Date</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {filteredApplications.map((app) => (
-                          <TableRow key={app.id} className="hover:bg-muted/50">
-                            <TableCell className="font-mono font-medium">{app.id.slice(0, 8)}...</TableCell>
+                          <TableRow key={app.id}>
                             <TableCell>
                               <div>
-                                <div className="font-medium">{app.user_name}</div>
-                                <div className="text-sm text-muted-foreground">{app.user_email}</div>
+                                <p className="font-medium">{app.user_name}</p>
+                                <p className="text-sm text-muted-foreground">{app.user_email}</p>
                               </div>
                             </TableCell>
-                            <TableCell className="font-medium">{app.license_type}</TableCell>
+                            <TableCell>{app.license_type}</TableCell>
                             <TableCell>{getStatusBadge(app.status)}</TableCell>
                             <TableCell>{new Date(app.submission_date).toLocaleDateString()}</TableCell>
                             <TableCell>
-                              <div className="flex items-center gap-1">
+                              <div className="flex gap-2">
                                 <Dialog>
                                   <DialogTrigger asChild>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      onClick={() => setSelectedApplication(app)}
-                                    >
-                                      <Eye className="h-4 w-4" />
+                                    <Button variant="outline" size="sm" onClick={() => setSelectedApplication(app)}>
+                                      <Eye className="h-4 w-4 mr-1" />
+                                      View
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                                  <DialogContent className="max-w-2xl">
                                     <DialogHeader>
-                                      <DialogTitle>Application Details - {app.id}</DialogTitle>
+                                      <DialogTitle>Application Details</DialogTitle>
                                     </DialogHeader>
-                                    <div className="space-y-6">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                          <Label>Applicant Name</Label>
-                                          <p className="font-medium">{app.user_name}</p>
+                                    {selectedApplication && (
+                                      <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div>
+                                            <Label>Applicant Name</Label>
+                                            <p className="font-medium">{selectedApplication.user_name}</p>
+                                          </div>
+                                          <div>
+                                            <Label>License Type</Label>
+                                            <p className="font-medium">{selectedApplication.license_type}</p>
+                                          </div>
+                                          <div>
+                                            <Label>Status</Label>
+                                            {getStatusBadge(selectedApplication.status)}
+                                          </div>
+                                          <div>
+                                            <Label>Submission Date</Label>
+                                            <p>{new Date(selectedApplication.submission_date).toLocaleDateString()}</p>
+                                          </div>
                                         </div>
-                                        <div>
-                                          <Label>Email</Label>
-                                          <p className="font-medium">{app.user_email}</p>
-                                        </div>
-                                        <div>
-                                          <Label>License Type</Label>
-                                          <p className="font-medium">{app.license_type}</p>
-                                        </div>
-                                        <div>
-                                          <Label>Current Status</Label>
-                                          {getStatusBadge(app.status)}
-                                        </div>
-                                        <div>
-                                          <Label>Submission Date</Label>
-                                          <p className="font-medium">{new Date(app.submission_date).toLocaleDateString()}</p>
-                                        </div>
-                                        <div>
-                                          <Label>Application ID</Label>
-                                          <p className="font-mono text-sm">{app.id}</p>
-                                        </div>
-                                      </div>
-
-                                      <div>
-                                        <Label>Documents Submitted ({app.documents?.length || 0})</Label>
-                                        <div className="mt-2 space-y-2">
-                                          {app.documents?.map((doc, index) => (
-                                            <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                                              <div>
-                                                <span className="font-medium">{doc.doc_type}</span>
-                                                <p className="text-sm text-muted-foreground">Uploaded</p>
-                                              </div>
-                                              <Button variant="outline" size="sm">
-                                                <Download className="h-4 w-4 mr-2" />
-                                                Download
+                                        
+                                        {selectedApplication.status === 'pending' && (
+                                          <div className="space-y-4 pt-4 border-t">
+                                            <div>
+                                              <Label htmlFor="remarks">Approval/Rejection Remarks</Label>
+                                              <Textarea
+                                                id="remarks"
+                                                placeholder="Enter your remarks..."
+                                                value={approvalRemarks}
+                                                onChange={(e) => setApprovalRemarks(e.target.value)}
+                                              />
+                                            </div>
+                                            <div className="flex gap-2">
+                                              <Button 
+                                                onClick={() => handleApproveApplication(selectedApplication.id)}
+                                                className="bg-success hover:bg-success/90"
+                                              >
+                                                <CheckSquare className="h-4 w-4 mr-2" />
+                                                Approve
+                                              </Button>
+                                              <Button 
+                                                variant="destructive"
+                                                onClick={() => handleRejectApplication(selectedApplication.id)}
+                                              >
+                                                <XSquare className="h-4 w-4 mr-2" />
+                                                Reject
+                                              </Button>
+                                              <Button 
+                                                variant="outline"
+                                                onClick={() => handleSetProcessing(selectedApplication.id)}
+                                              >
+                                                <RefreshCw className="h-4 w-4 mr-2" />
+                                                Set Processing
                                               </Button>
                                             </div>
-                                          )) || <p className="text-muted-foreground">No documents uploaded</p>}
-                                        </div>
+                                          </div>
+                                        )}
                                       </div>
-
-                                      {app.status === "pending" && (
-                                        <div className="space-y-4 border-t pt-4">
-                                          <div>
-                                            <Label htmlFor="remarks">Action Remarks (Required)</Label>
-                                            <Textarea
-                                              id="remarks"
-                                              placeholder="Enter detailed remarks for your decision..."
-                                              value={approvalRemarks}
-                                              onChange={(e) => setApprovalRemarks(e.target.value)}
-                                              className="mt-2"
-                                              rows={4}
-                                            />
-                                          </div>
-                                          <div className="flex gap-3">
-                                            <Button 
-                                              className="bg-success hover:bg-success/90 text-success-foreground"
-                                              onClick={() => handleApproveApplication(app.id)}
-                                            >
-                                              <CheckSquare className="h-4 w-4 mr-2" />
-                                              Approve Application
-                                            </Button>
-                                            <Button 
-                                              variant="outline"
-                                              onClick={() => handleSetProcessing(app.id)}
-                                            >
-                                              <RefreshCw className="h-4 w-4 mr-2" />
-                                              Set Processing
-                                            </Button>
-                                            <Button 
-                                              variant="destructive"
-                                              onClick={() => handleRejectApplication(app.id)}
-                                            >
-                                              <XSquare className="h-4 w-4 mr-2" />
-                                              Reject Application
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
+                                    )}
                                   </DialogContent>
                                 </Dialog>
-                                
-                                {app.status === "pending" && (
-                                  <>
-                                    <Button 
-                                      variant="outline" 
-                                      size="sm"
-                                      className="text-success hover:text-success"
-                                      onClick={() => handleSetProcessing(app.id)}
-                                    >
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -649,107 +604,179 @@ const AdminDashboard = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="h-5 w-5" />
-                    Department Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {departments.map((dept) => (
-                      <Card key={dept} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold">{dept}</h3>
-                            <Badge variant="outline" className="text-success">Active</Badge>
-                          </div>
-                          <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                              <span>Pending:</span>
-                              <span className="font-medium">{Math.floor(Math.random() * 15 + 2)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Processing:</span>
-                              <span className="font-medium">{Math.floor(Math.random() * 8 + 1)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Completed:</span>
-                              <span className="font-medium text-success">{Math.floor(Math.random() * 50 + 20)}</span>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="analytics" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    System Analytics & Reports
+                    Department Overview
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center py-12">
-                    <TrendingUp className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Advanced Analytics Dashboard</h3>
+                    <Building2 className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Multi-Department Administration</h3>
                     <p className="text-muted-foreground mb-6">
-                      Comprehensive reports, performance metrics, and data insights for government operations
+                      Centralized management and coordination across all government departments
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                      <div className="p-4 border rounded-lg">
-                        <FileCheck className="h-8 w-8 mx-auto mb-2 text-primary" />
-                        <h4 className="font-semibold">Application Reports</h4>
-                        <p className="text-sm text-muted-foreground">Detailed processing statistics</p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <Users className="h-8 w-8 mx-auto mb-2 text-accent" />
-                        <h4 className="font-semibold">User Analytics</h4>
-                        <p className="text-sm text-muted-foreground">Citizen engagement metrics</p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <Clock className="h-8 w-8 mx-auto mb-2 text-warning" />
-                        <h4 className="font-semibold">Performance</h4>
-                        <p className="text-sm text-muted-foreground">Processing time analysis</p>
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+                      {departments.map((dept, index) => (
+                        <div key={dept} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                          <Building2 className="h-8 w-8 mx-auto mb-2 text-primary" />
+                          <h4 className="font-semibold">{dept}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            {Math.floor(Math.random() * 20 + 5)} active applications
+                          </p>
+                          <Badge variant="outline" className="mt-2">Active</Badge>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="blockchain" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-6 w-6 text-primary" />
+                    Blockchain Integration & MetaMask
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Manage blockchain transactions, digital signatures, and certificate verification
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* MetaMask Wallet Connection */}
+                    <div>
+                      <WalletConnect />
+                    </div>
+                    
+                    {/* Blockchain Operations */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-lg">Blockchain Operations</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                            <div>
+                              <p className="font-medium">Certificate Issuance</p>
+                              <p className="text-sm text-muted-foreground">Issue blockchain-verified certificates</p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <FileCheck className="h-4 w-4 mr-2" />
+                              Issue
+                            </Button>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                            <div>
+                              <p className="font-medium">Transaction Verification</p>
+                              <p className="text-sm text-muted-foreground">Verify blockchain transactions</p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <CheckCircle2 className="h-4 w-4 mr-2" />
+                              Verify
+                            </Button>
+                          </div>
+                          
+                          <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                            <div>
+                              <p className="font-medium">Smart Contract Interaction</p>
+                              <p className="text-sm text-muted-foreground">Execute smart contract functions</p>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              <Shield className="h-4 w-4 mr-2" />
+                              Execute
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                  
+                  {/* Recent Blockchain Transactions */}
+                  <Card className="mt-6">
+                    <CardHeader>
+                      <CardTitle>Recent Blockchain Transactions</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Shield className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <p>No blockchain transactions found</p>
+                        <p className="text-sm">Connect MetaMask to start processing blockchain transactions</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {isSuperAdmin && (
+              <TabsContent value="roles" className="space-y-6">
+                <div className="mb-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Crown className="h-8 w-8 text-purple-600" />
+                    <div>
+                      <h2 className="text-2xl font-bold text-purple-600">Super Admin Panel</h2>
+                      <p className="text-muted-foreground">Complete administrative control and user management</p>
+                    </div>
+                  </div>
+                </div>
+                <RoleManagement />
+              </TabsContent>
+            )}
+
+            {isSuperAdmin && (
+              <TabsContent value="monitor" className="space-y-6">
+                <ActivityMonitor />
+              </TabsContent>
+            )}
 
             <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Settings className="h-5 w-5" />
-                    System Administration
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-12">
-                    <Shield className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-xl font-semibold mb-2">Administrative Controls</h3>
-                    <p className="text-muted-foreground mb-6">
-                      Configure system settings, manage departments, and administrative functions
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-xl mx-auto">
-                      <div className="p-4 border rounded-lg">
-                        <Building2 className="h-8 w-8 mx-auto mb-2 text-primary" />
-                        <h4 className="font-semibold">Department Config</h4>
-                        <p className="text-sm text-muted-foreground">Manage departments and workflows</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="h-5 w-5 text-muted-foreground" />
+                      System Administration
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <span>Email Notifications</span>
+                        <Button variant="outline" size="sm">Configure</Button>
                       </div>
-                      <div className="p-4 border rounded-lg">
-                        <UserCheck className="h-8 w-8 mx-auto mb-2 text-accent" />
-                        <h4 className="font-semibold">User Management</h4>
-                        <p className="text-sm text-muted-foreground">Role and permission controls</p>
+                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <span>Backup Settings</span>
+                        <Button variant="outline" size="sm">Manage</Button>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                        <span>Security Policies</span>
+                        <Button variant="outline" size="sm">Review</Button>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-muted-foreground" />
+                      System Analytics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="text-center py-8 text-muted-foreground">
+                        <BarChart3 className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                        <h3 className="text-lg font-semibold mb-2">Analytics Dashboard</h3>
+                        <p>Comprehensive system analytics and reporting</p>
+                        <p className="text-sm mt-2">Track application processing times, success rates, and system performance</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>

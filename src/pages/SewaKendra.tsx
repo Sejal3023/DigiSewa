@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Phone, Mail, Clock, Zap, DollarSign, Users, Shield } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Zap, DollarSign, Users, Shield, ArrowLeft } from 'lucide-react';
 
 const formSchema = z.object({
   district: z.string().min(1, "Please select a district"),
@@ -57,6 +58,7 @@ const sampleVLEs = [
 ];
 
 export default function SewaKendra() {
+  const navigate = useNavigate();
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [showResults, setShowResults] = useState(false);
 
@@ -85,6 +87,18 @@ export default function SewaKendra() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       <div className="container mx-auto px-4 py-8">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary mb-4">Sewa Kendra Locator</h1>

@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Wallet, Copy, ExternalLink, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 declare global {
   interface Window {
@@ -17,34 +18,41 @@ const WalletConnect = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [balance, setBalance] = useState<string>("");
   const [chainId, setChainId] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    checkIfWalletIsConnected();
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-    }
-
-    return () => {
-      if (window.ethereum) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
-      }
-    };
+    loadWalletFromBackend();
   }, []);
 
-  const checkIfWalletIsConnected = async () => {
+  const loadWalletFromBackend = async () => {
     try {
-      if (!window.ethereum) return;
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
       
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
-        setAccount(accounts[0]);
-        getBalance(accounts[0]);
-        getChainId();
+      if (!session) {
+        setIsLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('wallet-proxy', {
+        method: 'GET',
+      });
+
+      if (error) {
+        console.error('Error loading wallet:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data?.wallet) {
+        setAccount(data.wallet.wallet_address);
+        setBalance(data.wallet.balance || '0');
+        setChainId(data.wallet.chain_id);
       }
     } catch (error) {
-      console.error("Error checking wallet connection:", error);
+      console.error('Error loading wallet from backend:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,21 +69,50 @@ const WalletConnect = () => {
     setIsConnecting(true);
     
     try {
+      // Get wallet address from MetaMask
       const accounts = await window.ethereum.request({ 
         method: 'eth_requestAccounts' 
       });
       
-      if (accounts.length > 0) {
-        setAccount(accounts[0]);
-        getBalance(accounts[0]);
-        getChainId();
-        
-        toast({
-          title: "Wallet Connected",
-          description: "Successfully connected to MetaMask",
-        });
+      if (accounts.length === 0) {
+        throw new Error('No accounts found');
       }
+
+      const walletAddress = accounts[0];
+      
+      // Get chain ID
+      const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+      
+      // Get balance
+      const balanceHex = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [walletAddress, 'latest']
+      });
+      const balanceEth = (parseInt(balanceHex, 16) / Math.pow(10, 18)).toFixed(4);
+
+      // Store wallet info in backend
+      const { data, error } = await supabase.functions.invoke('wallet-proxy', {
+        body: {
+          walletAddress,
+          chainId: chainIdHex,
+          balance: balanceEth,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to connect wallet to backend');
+      }
+
+      setAccount(walletAddress);
+      setBalance(balanceEth);
+      setChainId(chainIdHex);
+      
+      toast({
+        title: "Wallet Connected",
+        description: "Successfully connected to MetaMask via backend proxy",
+      });
     } catch (error: any) {
+      console.error('Connect wallet error:', error);
       toast({
         title: "Connection Failed",
         description: error.message || "Failed to connect wallet",
@@ -86,50 +123,32 @@ const WalletConnect = () => {
     }
   };
 
-  const disconnectWallet = () => {
-    setAccount("");
-    setBalance("");
-    setChainId("");
-    toast({
-      title: "Wallet Disconnected",
-      description: "Successfully disconnected from MetaMask",
-    });
-  };
-
-  const getBalance = async (address: string) => {
+  const disconnectWallet = async () => {
     try {
-      const balanceHex = await window.ethereum.request({
-        method: 'eth_getBalance',
-        params: [address, 'latest']
+      const { error } = await supabase.functions.invoke('wallet-proxy', {
+        method: 'DELETE',
       });
-      const balanceEth = parseInt(balanceHex, 16) / Math.pow(10, 18);
-      setBalance(balanceEth.toFixed(4));
-    } catch (error) {
-      console.error("Error getting balance:", error);
-    }
-  };
 
-  const getChainId = async () => {
-    try {
-      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-      setChainId(chainId);
-    } catch (error) {
-      console.error("Error getting chain ID:", error);
-    }
-  };
+      if (error) {
+        throw new Error(error.message);
+      }
 
-  const handleAccountsChanged = (accounts: string[]) => {
-    if (accounts.length === 0) {
-      disconnectWallet();
-    } else {
-      setAccount(accounts[0]);
-      getBalance(accounts[0]);
+      setAccount("");
+      setBalance("");
+      setChainId("");
+      
+      toast({
+        title: "Wallet Disconnected",
+        description: "Successfully disconnected from backend",
+      });
+    } catch (error: any) {
+      console.error('Disconnect wallet error:', error);
+      toast({
+        title: "Disconnection Failed",
+        description: error.message || "Failed to disconnect wallet",
+        variant: "destructive"
+      });
     }
-  };
-
-  const handleChainChanged = (chainId: string) => {
-    setChainId(chainId);
-    window.location.reload();
   };
 
   const copyAddress = () => {
@@ -160,14 +179,18 @@ const WalletConnect = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wallet className="h-5 w-5 text-primary" />
-          Blockchain Wallet
+          Blockchain Wallet (Backend Proxy)
         </CardTitle>
         <CardDescription>
-          Connect your MetaMask wallet to access blockchain-verified certificates
+          Connect your MetaMask wallet - managed securely through backend proxy
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {!account ? (
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Loading wallet...</p>
+          </div>
+        ) : !account ? (
           <div className="text-center space-y-4">
             <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
               <Wallet className="h-8 w-8 text-primary" />
@@ -175,7 +198,7 @@ const WalletConnect = () => {
             <div>
               <h3 className="font-semibold mb-2">Connect Your Wallet</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Connect your MetaMask wallet to verify and manage your digital certificates on the blockchain
+                Connect your MetaMask wallet - all data is securely stored in the backend
               </p>
               <Button 
                 onClick={connectWallet} 
@@ -183,7 +206,7 @@ const WalletConnect = () => {
                 className="w-full"
               >
                 <Wallet className="h-4 w-4 mr-2" />
-                {isConnecting ? "Connecting..." : "Connect MetaMask"}
+                {isConnecting ? "Connecting..." : "Connect via Backend"}
               </Button>
             </div>
           </div>
@@ -237,7 +260,7 @@ const WalletConnect = () => {
             
             <div className="pt-3 border-t">
               <p className="text-xs text-muted-foreground text-center">
-                🔒 Your certificates are secured and verified on the blockchain
+                🔒 Wallet data secured via backend proxy - certificates verified on blockchain
               </p>
             </div>
           </div>

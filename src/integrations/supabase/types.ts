@@ -282,6 +282,42 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_connections: {
+        Row: {
+          balance: string | null
+          chain_id: string | null
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_connected_at: string | null
+          updated_at: string
+          user_id: string
+          wallet_address: string
+        }
+        Insert: {
+          balance?: string | null
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string
+          user_id: string
+          wallet_address: string
+        }
+        Update: {
+          balance?: string | null
+          chain_id?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_connected_at?: string | null
+          updated_at?: string
+          user_id?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

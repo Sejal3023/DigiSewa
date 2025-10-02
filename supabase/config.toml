@@ -1,1 +1,4 @@
 project_id = "fotsoyglzlfwfyiozbee"
+
+[functions.wallet-proxy]
+verify_jwt = true

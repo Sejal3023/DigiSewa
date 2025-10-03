@@ -6,49 +6,47 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   FileText, 
   Clock, 
   CheckCircle2, 
-  AlertCircle, 
   Eye, 
   Download,
   Search,
   Filter,
   Users,
-  BarChart3,
   Settings,
   Shield,
   CheckSquare,
   XSquare,
   Building2,
   Calendar,
-  TrendingUp,
   FileCheck,
   UserCheck,
-  AlertTriangle,
   RefreshCw,
   Activity,
-  Crown
+  Crown,
+  Loader2,
+  AlertTriangle,
+  BarChart3
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import WalletConnect from "@/components/WalletConnect";
 import RoleManagement from "@/components/RoleManagement";
 import ActivityMonitor from "@/components/ActivityMonitor";
+import { ApplicationDetailsDialog } from "@/components/ApplicationDetailsDialog";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState(null);
-  const [approvalRemarks, setApprovalRemarks] = useState("");
+  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -71,13 +69,16 @@ const AdminDashboard = () => {
   ]);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { role, loading: roleLoading, isSuperAdmin } = useAdminRole();
   
-  // Check if user has Super Admin privileges
-  const isSuperAdmin = user?.email && (
-    user.email === 'super.admin@gov.in' || 
-    // Add check for super_admin role from database
-    false // This will be updated when user role is loaded from DB
-  );
+  // Show loading while checking role
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const fetchApplications = async () => {
     try {
@@ -187,22 +188,15 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApproveApplication = async (applicationId: string) => {
-    if (!approvalRemarks.trim()) {
-      toast({
-        title: "Approval Remarks Required",
-        description: "Please provide approval remarks.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleApproveApplication = async (remarks: string) => {
+    if (!selectedApplication) return;
 
     try {
       // Update application status
       const { error: updateError } = await supabase
         .from('applications')
         .update({ status: 'approved' })
-        .eq('id', applicationId);
+        .eq('id', selectedApplication.id);
 
       if (updateError) throw updateError;
 
@@ -210,58 +204,52 @@ const AdminDashboard = () => {
       const { error: approvalError } = await supabase
         .from('approvals')
         .insert({
-          application_id: applicationId,
+          application_id: selectedApplication.id,
           approved_by: user?.id,
-          department_name: departmentFilter !== 'all' ? departmentFilter : 'Admin',
-          remarks: approvalRemarks
+          department_name: 'Admin',
+          remarks
         });
 
       if (approvalError) throw approvalError;
 
       // Log the action
       await supabase
-        .from('audit_logs')
+        .from('admin_activities')
         .insert({
-          user_id: user?.id,
+          admin_id: user?.id,
           action: 'application_approved',
-          details: { application_id: applicationId, remarks: approvalRemarks }
+          target_application_id: selectedApplication.id,
+          details: { remarks }
         });
 
       await fetchApplications();
       await fetchStats();
-      setApprovalRemarks("");
+      setDialogOpen(false);
       setSelectedApplication(null);
       
       toast({
         title: "Application Approved",
-        description: `Application ${applicationId} has been approved successfully.`,
+        description: "Application has been approved successfully.",
       });
     } catch (error) {
       console.error('Error approving application:', error);
       toast({
         title: "Error",
-        description: "Failed to approve application. Please try again.",
+        description: "Failed to approve application.",
         variant: "destructive",
       });
     }
   };
 
-  const handleRejectApplication = async (applicationId: string) => {
-    if (!approvalRemarks.trim()) {
-      toast({
-        title: "Rejection Reason Required",
-        description: "Please provide a reason for rejection.",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleRejectApplication = async (remarks: string) => {
+    if (!selectedApplication) return;
 
     try {
       // Update application status
       const { error: updateError } = await supabase
         .from('applications')
         .update({ status: 'rejected' })
-        .eq('id', applicationId);
+        .eq('id', selectedApplication.id);
 
       if (updateError) throw updateError;
 
@@ -269,57 +257,62 @@ const AdminDashboard = () => {
       const { error: approvalError } = await supabase
         .from('approvals')
         .insert({
-          application_id: applicationId,
+          application_id: selectedApplication.id,
           approved_by: user?.id,
-          department_name: departmentFilter !== 'all' ? departmentFilter : 'Admin',
-          remarks: approvalRemarks
+          department_name: 'Admin',
+          remarks
         });
 
       if (approvalError) throw approvalError;
 
       // Log the action
       await supabase
-        .from('audit_logs')
+        .from('admin_activities')
         .insert({
-          user_id: user?.id,
+          admin_id: user?.id,
           action: 'application_rejected',
-          details: { application_id: applicationId, remarks: approvalRemarks }
+          target_application_id: selectedApplication.id,
+          details: { remarks }
         });
 
       await fetchApplications();
       await fetchStats();
-      setApprovalRemarks("");
+      setDialogOpen(false);
       setSelectedApplication(null);
       
       toast({
         title: "Application Rejected",
-        description: `Application ${applicationId} has been rejected.`,
+        description: "Application has been rejected.",
       });
     } catch (error) {
       console.error('Error rejecting application:', error);
       toast({
         title: "Error", 
-        description: "Failed to reject application. Please try again.",
+        description: "Failed to reject application.",
         variant: "destructive",
       });
     }
   };
 
-  const handleSetProcessing = async (applicationId: string) => {
+  const handleSetProcessing = async () => {
+    if (!selectedApplication) return;
+
     try {
       const { error } = await supabase
         .from('applications')
         .update({ status: 'processing' })
-        .eq('id', applicationId);
+        .eq('id', selectedApplication.id);
 
       if (error) throw error;
 
       await fetchApplications();
       await fetchStats();
+      setDialogOpen(false);
+      setSelectedApplication(null);
       
       toast({
         title: "Status Updated",
-        description: `Application ${applicationId} is now being processed.`,
+        description: "Application is now being processed.",
       });
     } catch (error) {
       console.error('Error updating status:', error);
@@ -516,78 +509,17 @@ const AdminDashboard = () => {
                             <TableCell>{new Date(app.submission_date).toLocaleDateString()}</TableCell>
                             <TableCell>
                               <div className="flex gap-2">
-                                <Dialog>
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline" size="sm" onClick={() => setSelectedApplication(app)}>
-                                      <Eye className="h-4 w-4 mr-1" />
-                                      View
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="max-w-2xl">
-                                    <DialogHeader>
-                                      <DialogTitle>Application Details</DialogTitle>
-                                    </DialogHeader>
-                                    {selectedApplication && (
-                                      <div className="space-y-4">
-                                        <div className="grid grid-cols-2 gap-4">
-                                          <div>
-                                            <Label>Applicant Name</Label>
-                                            <p className="font-medium">{selectedApplication.user_name}</p>
-                                          </div>
-                                          <div>
-                                            <Label>License Type</Label>
-                                            <p className="font-medium">{selectedApplication.license_type}</p>
-                                          </div>
-                                          <div>
-                                            <Label>Status</Label>
-                                            {getStatusBadge(selectedApplication.status)}
-                                          </div>
-                                          <div>
-                                            <Label>Submission Date</Label>
-                                            <p>{new Date(selectedApplication.submission_date).toLocaleDateString()}</p>
-                                          </div>
-                                        </div>
-                                        
-                                        {selectedApplication.status === 'pending' && (
-                                          <div className="space-y-4 pt-4 border-t">
-                                            <div>
-                                              <Label htmlFor="remarks">Approval/Rejection Remarks</Label>
-                                              <Textarea
-                                                id="remarks"
-                                                placeholder="Enter your remarks..."
-                                                value={approvalRemarks}
-                                                onChange={(e) => setApprovalRemarks(e.target.value)}
-                                              />
-                                            </div>
-                                            <div className="flex gap-2">
-                                              <Button 
-                                                onClick={() => handleApproveApplication(selectedApplication.id)}
-                                                className="bg-success hover:bg-success/90"
-                                              >
-                                                <CheckSquare className="h-4 w-4 mr-2" />
-                                                Approve
-                                              </Button>
-                                              <Button 
-                                                variant="destructive"
-                                                onClick={() => handleRejectApplication(selectedApplication.id)}
-                                              >
-                                                <XSquare className="h-4 w-4 mr-2" />
-                                                Reject
-                                              </Button>
-                                              <Button 
-                                                variant="outline"
-                                                onClick={() => handleSetProcessing(selectedApplication.id)}
-                                              >
-                                                <RefreshCw className="h-4 w-4 mr-2" />
-                                                Set Processing
-                                              </Button>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
-                                  </DialogContent>
-                                </Dialog>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSelectedApplication(app);
+                                    setDialogOpen(true);
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -783,6 +715,17 @@ const AdminDashboard = () => {
       </main>
       
       <Footer />
+
+      {/* Application Details Dialog */}
+      <ApplicationDetailsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        application={selectedApplication}
+        onApprove={handleApproveApplication}
+        onReject={handleRejectApplication}
+        onSetProcessing={handleSetProcessing}
+        loading={loading}
+      />
     </div>
   );
 };

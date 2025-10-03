@@ -15,6 +15,8 @@ import TrackApplication from "./pages/TrackApplication";
 import ApplicationForm from "./pages/ApplicationForm";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AdminLogin from "./pages/AdminLogin";
+import DepartmentLogin from "./pages/DepartmentLogin";
 import SewaKendra from "./pages/SewaKendra";
 import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
@@ -34,11 +36,14 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/department-login" element={<DepartmentLogin />} />
             <Route path="/services" element={<Services />} />
             <Route path="/services/:serviceId" element={<Services />} />
             <Route path="/apply/:serviceId" element={<ApplicationForm />} />
             <Route path="/applications" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/track" element={<TrackApplication />} />

@@ -40,7 +40,7 @@ export const HeroSection = () => {
             {t('hero.subtitle')}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
             <Button size="lg" variant="secondary" className="text-lg px-8" asChild>
               <Link to="/services">
                 {t('hero.cta.apply')}
@@ -50,6 +50,21 @@ export const HeroSection = () => {
             <Button size="lg" variant="outline" className="text-lg px-8 bg-white/10 border-white/30 text-white hover:bg-white hover:text-primary" asChild>
               <Link to="/track">{t('hero.cta.track')}</Link>
             </Button>
+          </div>
+
+          {/* Official Login Links */}
+          <div className="flex flex-wrap gap-3 justify-center mb-12 text-sm">
+            <Link to="/admin-login" className="text-white/80 hover:text-white underline underline-offset-4 transition-colors">
+              Admin Login
+            </Link>
+            <span className="text-white/40">|</span>
+            <Link to="/department-login" className="text-white/80 hover:text-white underline underline-offset-4 transition-colors">
+              Department Login
+            </Link>
+            <span className="text-white/40">|</span>
+            <Link to="/login" className="text-white/80 hover:text-white underline underline-offset-4 transition-colors">
+              Citizen Login
+            </Link>
           </div>
 
           {/* Stats Grid */}

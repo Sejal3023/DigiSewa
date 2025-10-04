@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { BlockchainStatus } from "@/components/BlockchainStatus";
 import { 
   FileText, 
   Download, 
@@ -177,32 +178,14 @@ export function ApplicationDetailsDialog({
           )}
 
           {/* Blockchain Info */}
-          {(application.blockchain_tx_hash || application.ipfs_hash) && (
+          {(application.blockchain_tx_hash || application.ipfs_hash || application.id) && (
             <>
               <Separator />
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold">Blockchain & IPFS</h3>
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  {application.blockchain_tx_hash && (
-                    <div className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="text-xs text-muted-foreground">Blockchain TX</p>
-                        <p className="font-mono text-xs break-all">{application.blockchain_tx_hash}</p>
-                      </div>
-                    </div>
-                  )}
-                  {application.ipfs_hash && (
-                    <div className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="text-xs text-muted-foreground">IPFS Hash</p>
-                        <p className="font-mono text-xs break-all">{application.ipfs_hash}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <BlockchainStatus
+                applicationId={application.id}
+                txHash={application.blockchain_tx_hash}
+                ipfsHash={application.ipfs_hash}
+              />
             </>
           )}
 

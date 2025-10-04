@@ -66,30 +66,68 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // For now, we'll use the same authentication but could add admin role checking later
-      const { error } = await supabase.auth.signInWithPassword({
+      // Authenticate with email and password
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: adminForm.email,
         password: adminForm.password,
       });
 
-      if (error) {
+      if (authError) throw authError;
+
+      // Verify user role from user_roles table
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role, department')
+        .eq('user_id', authData.user.id)
+        .eq('is_active', true)
+        .single();
+
+      if (roleError || !roleData) {
+        await supabase.auth.signOut();
         toast({
-          title: "Admin Login Failed",
-          description: error.message,
+          title: "Access Denied",
+          description: "You don't have admin or department privileges.",
           variant: "destructive",
         });
-      } else {
-        // TODO: Add admin code verification logic here if needed
-        toast({
-          title: "Admin Login Successful",
-          description: "Access granted to admin portal",
-        });
-        navigate("/admin");
+        setIsLoading(false);
+        return;
       }
-    } catch (error) {
+
+      // Verify admin access code (this could be stored in a secure table or validated against a secret)
+      // For now, we'll do a simple check - you should implement proper access code validation
+      if (!adminForm.adminCode) {
+        await supabase.auth.signOut();
+        toast({
+          title: "Admin Login Failed",
+          description: "Admin access code is required.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      toast({
+        title: "Login Successful",
+        description: `Welcome ${roleData.role === 'department' ? 'Department' : 'Admin'} user`,
+      });
+
+      // Redirect based on role
+      if (roleData.role === 'department') {
+        navigate("/department-dashboard");
+      } else if (roleData.role === 'admin' || roleData.role === 'super_admin') {
+        navigate("/admin-dashboard");
+      } else {
+        await supabase.auth.signOut();
+        toast({
+          title: "Access Denied",
+          description: "Invalid role for admin portal.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
       toast({
         title: "Admin Login Failed",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

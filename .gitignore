@@ -1,0 +1,10 @@
+node_modules/
+backend/.env
+backend/.env.backup
+.env
+backend.log
+dist/
+build/
+ipfs-repo/
+artifacts/
+cache/

@@ -1,0 +1,39 @@
+{
+  "name": "digisewa-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Blockchain-Based Digital Government License & Registration System",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "setup-db": "node scripts/setup-db.js",
+    "check-db": "node -e \"import('./pg_client.js').then(({ testConnection }) => testConnection())\""
+  },
+  "dependencies": {
+    "axios": "^1.12.2",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "ethers": "^6.15.0",
+    "express": "^4.19.2",
+    "express-validator": "^7.2.1",
+    "form-data": "^4.0.4",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "multer": "^1.4.5-lts.1",
+    "pdfkit": "^0.17.2",
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "pg-pool": "^3.6.1",
+    "react-pdf": "^10.2.0",
+    "sequelize": "^6.37.7",
+    "sequelize-cli": "^6.6.3",
+    "uuid": "^12.0.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "hardhat": "^2.26.3"
+  }
+}
